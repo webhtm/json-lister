@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONLister</title>
+    <style>
+        :root {
+            /* Sleek Dark/Indigo Theme */
+            --bg-color: #333;
+            
+            --accent-color: rgb(36, 10, 200);
+            --accent-hover: #7c3aed;
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+            --border-color: #3f3f46;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --font-main: arial;
+            --font-mono: arial;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            background-image: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15), transparent 50%);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        h1 {
+            font-size: 2.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 1.15rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .layout-container {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 300px 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .layout-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel Styling */
+        .panel {
+            background-color: var(--surface-color);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .panel-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            background-color: rgba(139, 92, 246, 0.2);
+            color: #c4b5fd;
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        /* Input/Output Areas */
+        .editor-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        textarea {
+            flex-grow: 1;
+            width: 100%;
+            min-height: 400px;
+            background-color: transparent;
+            border: none;
+            padding: 1.5rem;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            resize: none;
+            outline: none;
+        }
+
+        textarea::placeholder {
+            color: #52525b;
+        }
+
+        .output-area {
+            background-color: #000000;
+            color: #a78bfa; /* Slightly tinted for syntax feel */
+        }
+
+        /* Configuration Middle Column */
+        .config-panel {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            background-color: rgba(24, 24, 27, 0.8);
+        }
+
+        .config-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .config-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        /* Toggles and Radios */
+        .control-label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .control-label:hover {
+            color: var(--accent-color);
+        }
+
+        input[type="checkbox"], input[type="radio"] {
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--bg-color);
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        input[type="radio"] {
+            border-radius: 50%;
+        }
+
+        input[type="checkbox"]::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            background-color: transform;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        input[type="radio"]::before {
+            content: "";
+            width: 0.6em;
+            height: 0.6em;
+            border-radius: 50%;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+        }
+
+        input[type="checkbox"]:checked, input[type="radio"]:checked {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        input[type="checkbox"]:checked::before, input[type="radio"]:checked::before {
+            transform: scale(1);
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: auto;
+        }
+
+        .btn {
+            background-color: var(--surface-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.875rem 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background-color: var(--border-color);
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+        }
+
+        .btn.primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn.primary:hover {
+            background-color: var(--accent-hover);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .btn.success:hover {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: var(--success-color);
+        }
+
+        /* File Drop Zone styling for the input area */
+        .drag-over {
+            background-color: rgba(139, 92, 246, 0.05) !important;
+            box-shadow: inset 0 0 0 2px var(--accent-color) !important;
+        }
+
+        
+
+        .toast {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--success-color);
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+            font-weight: 500;
+            display: flex; 
+            align-items: center;
+            gap: 0.75rem;
+            animation: toastSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, toastFadeOut 0.4s ease 3s forwards;
+        }
+
+        .toast.error {
+            border-left-color: var(--error-color);
+        }
+
+        @keyframes toastSlideIn {
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes toastFadeOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(120%); opacity: 0; }
+        }
+        
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--border-color);
+            font-size: 3rem;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>JSONLister</h1>
+        
+    </header>
+
+    <div class="layout-container">
+        
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Raw Input</h2>
+                <span class="badge" id="lineCount">0 Lines</span>
+            </div>
+            <div class="editor-container" id="dropZone">
+                <textarea id="rawInput" placeholder="Paste your list or drop a text file"></textarea>
+                
+            </div>
+            <div style="padding: 1rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                <button class="btn" id="clearBtn">Clear Input</button>
+            </div>
+        </div>
+
+        <div class="panel config-panel">
+            <div class="config-group">
+                <div class="config-title">Data Cleaning</div>
+                <label class="control-label">
+                    <input type="checkbox" id="trimSpace" checked>
+                    Trim surrounding whitespace
+                </label>
+                <label class="control-label">
+                    <input type="checkbox" id="removeEmpty" checked>
+                    Remove empty lines
+                </label>
+            </div>
+
+            <div class="config-group">
+                <div class="config-title">Smart Parsing</div>
+                <label class="control-label">
+                    <input type="checkbox" id="parseNumbers" checked>
+                    Parse Numbers (Don't quote)
+                </label>
+                <label class="control-label">
+                    <input type="checkbox" id="parseBooleans" checked>
+                    Parse true/false (Don't quote)
+                </label>
+            </div>
+
+            <div class="config-group">
+                <div class="config-title">Formatting</div>
+                <label class="control-label">
+                    <input type="radio" name="quoteType" value="double" checked>
+                    Double Quotes
+                </label>
+                <label class="control-label">
+                    <input type="radio" name="quoteType" value="single">
+                    Single Quotes
+                </label>
+                <div style="height: 0.5rem;"></div>
+                <label class="control-label">
+                    <input type="radio" name="formatMode" value="pretty" checked>
+                    Pretty Print (Multi-line)
+                </label>
+                <label class="control-label">
+                    <input type="radio" name="formatMode" value="compact">
+                    Compact (Single-line)
+                </label>
+            </div>
+
+            <div class="btn-group">
+                
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h2>JSON Array</h2>
+                <span class="badge" id="arrayLength">Size: 0</span>
+            </div>
+            <div class="editor-container">
+                <textarea id="jsonOutput" class="output-area" readonly placeholder="[&#10;  ...&#10;]"></textarea>
+            </div>
+            <div style="padding: 1rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.2); display: flex; gap: 1rem;">
+                <button class="btn success" id="copyBtn">Copy</button>
+                <button class="btn" id="downloadBtn">Save</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const rawInput = document.getElementById('rawInput');
+            const jsonOutput = document.getElementById('jsonOutput');
+            const convertBtn = document.getElementById('convertBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const lineCount = document.getElementById('lineCount');
+            const arrayLength = document.getElementById('arrayLength');
+            const inputIcon = document.getElementById('inputIcon');
+            const dropZone = document.getElementById('dropZone');
+
+            // Config Elements
+            const config = {
+                trimSpace: document.getElementById('trimSpace'),
+                removeEmpty: document.getElementById('removeEmpty'),
+                parseNumbers: document.getElementById('parseNumbers'),
+                parseBooleans: document.getElementById('parseBooleans'),
+                getQuoteType: () => document.querySelector('input[name="quoteType"]:checked').value,
+                getFormatMode: () => document.querySelector('input[name="formatMode"]:checked').value
+            };
+
+            // Event Listeners
+            rawInput.addEventListener('input', () => {
+                updateLineCount();
+                toggleInputIcon();
+                
+                 generateJSON(); 
+            });
+
+            convertBtn.addEventListener('click', generateJSON);
+            
+            clearBtn.addEventListener('click', () => {
+                rawInput.value = '';
+                jsonOutput.value = '';
+                updateLineCount();
+                arrayLength.innerText = 'Size: 0';
+                toggleInputIcon();
+                showToast('Input cleared');
+            });
+
+            copyBtn.addEventListener('click', () => {
+                if (!jsonOutput.value) {
+                    showToast('Nothing to copy!', 'error');
+                    return;
+                }
+                navigator.clipboard.writeText(jsonOutput.value).then(() => {
+                    showToast('JSON copied to clipboard!');
+                }).catch(err => {
+                    showToast('Failed to copy text.', 'error');
+                    console.error(err);
+                });
+            });
+
+            downloadBtn.addEventListener('click', () => {
+                if (!jsonOutput.value) {
+                    showToast('Nothing to download!', 'error');
+                    return;
+                }
+                const blob = new Blob([jsonOutput.value], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'list-export.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('File downloaded!');
+            });
+
+            // Listen to config changes to auto-update if output already exists
+            Object.values(config).forEach(el => {
+                if(el instanceof HTMLElement) {
+                    el.addEventListener('change', () => {
+                        if (rawInput.value.trim().length > 0) generateJSON();
+                    });
+                }
+            });
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (rawInput.value.trim().length > 0) generateJSON();
+                });
+            });
+
+            // --- Drag and Drop Logic ---
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    rawInput.classList.add('drag-over');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    rawInput.classList.remove('drag-over');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            rawInput.value = e.target.result;
+                            updateLineCount();
+                            toggleInputIcon();
+                            generateJSON();
+                            showToast(`Loaded ${file.name}`);
+                        };
+                        reader.readAsText(file);
+                    } else {
+                        showToast('Please drop a valid text file (.txt)', 'error');
+                    }
+                }
+            });
+
+
+            // --- Core Processing Logic ---
+            function generateJSON() {
+                const rawText = rawInput.value;
+                if (!rawText && !config.removeEmpty.checked) {
+                    // Empty processing
+                }
+
+                // 1. Split into lines
+                let lines = rawText.split(/\r?\n/);
+                let processedCount = 0;
+
+                // 2. Process Array
+                let parsedArray = [];
+
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i];
+
+                    // Apply Trim
+                    if (config.trimSpace.checked) {
+                        line = line.trim();
+                    }
+
+                    // Apply Empty Line Removal
+                    if (config.removeEmpty.checked && line === '') {
+                        continue;
+                    }
+
+                    // Value Parsing
+                    let finalValue = line;
+
+                    if (config.parseNumbers.checked && line !== '' && !isNaN(line)) {
+                        finalValue = Number(line);
+                    } 
+                    else if (config.parseBooleans.checked && (line.toLowerCase() === 'true' || line.toLowerCase() === 'false')) {
+                        finalValue = line.toLowerCase() === 'true';
+                    } 
+                    else {
+                        // It's a string, format it based on quote rules
+                        // We use a custom object marker to handle single quotes manually later if needed
+                        if (config.getQuoteType() === 'single') {
+                            // Escape single quotes
+                            let escaped = line.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                            finalValue = { __isSingleQuoteString: true, val: escaped };
+                        } else {
+                            // Standard string, JSON.stringify handles escaping beautifully
+                            finalValue = line;
+                        }
+                    }
+
+                    parsedArray.push(finalValue);
+                    processedCount++;
+                }
+
+                // 3. Format Output
+                let outputString = '';
+                const formatMode = config.getFormatMode();
+                const quoteType = config.getQuoteType();
+
+                if (quoteType === 'double') {
+                    // Native JSON handling is perfectly safe for standard double quotes
+                    const spacing = formatMode === 'pretty' ? 2 : 0;
+                    outputString = JSON.stringify(parsedArray, null, spacing);
+                } else {
+                    // Custom formatting required for Single Quotes (Python style)
+                    const indent = formatMode === 'pretty' ? '  ' : '';
+                    const newline = formatMode === 'pretty' ? '\n' : ' ';
+                    
+                    let items = parsedArray.map(item => {
+                        if (item && item.__isSingleQuoteString) {
+                            return `'${item.val}'`;
+                        } else if (typeof item === 'string') {
+                             return `'${item.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+                        }
+                        return String(item);
+                    });
+
+                    if (formatMode === 'pretty') {
+                        outputString = `[\n${items.map(i => `${indent}${i}`).join(`,\n`)}\n]`;
+                    } else {
+                        outputString = `[${items.join(', ')}]`;
+                    }
+                }
+
+                // Update UI
+                jsonOutput.value = outputString;
+                arrayLength.innerText = `Size: ${parsedArray.length}`;
+                
+                // Add a subtle flash effect to the output box to indicate update
+                jsonOutput.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
+                setTimeout(() => {
+                    jsonOutput.style.backgroundColor = '#000000';
+                }, 300);
+            }
+
+            // --- Utilities ---
+            function updateLineCount() {
+                const lines = rawInput.value.split(/\r?\n/).length;
+                lineCount.innerText = rawInput.value ? `${lines} Line${lines !== 1 ? 's' : ''}` : '0 Lines';
+            }
+
+            function toggleInputIcon() {
+                if (rawInput.value.trim().length > 0) {
+                    inputIcon.style.display = 'none';
+                } else {
+                    inputIcon.style.display = 'block';
+                }
+            }
+
+            function showToast(message, type = 'success') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                
+                const icon = type === 'success' ? '' : '';
+                toast.innerHTML = `<span style="font-size: 1.2rem">${icon}</span> <span>${message}</span>`;
+                
+                container.appendChild(toast);
+
+                // Auto remove after animation completes
+                setTimeout(() => {
+                    if(toast.parentElement) {
+                        toast.remove();
+                    }
+                }, 3500);
+            }
+        });
+    </script>
+</body>
+</html>
